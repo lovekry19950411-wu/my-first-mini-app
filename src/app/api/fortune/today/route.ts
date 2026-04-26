@@ -4,13 +4,13 @@ import { getRequestUserId } from '@/lib/request-user';
 
 export async function GET() {
   const userId = await getRequestUserId();
-  const draw = getTodayDraw(userId);
+  const draw = await getTodayDraw(userId);
 
   if (!draw) {
     return NextResponse.json({ userId, hasDraw: false, draw: null, fortune: null, deepReadUnlocked: false });
   }
 
-  const entitlement = getEntitlement(userId, draw.dateKey);
+  const entitlement = await getEntitlement(userId, draw.dateKey);
 
   return NextResponse.json({
     userId,

@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = Number(searchParams.get('limit') ?? '7');
 
-  const history = getHistory(userId, Number.isNaN(limit) ? 7 : Math.min(limit, 30)).map((item) => ({
+  const history = (await getHistory(userId, Number.isNaN(limit) ? 7 : Math.min(limit, 30))).map((item: { userId: string; dateKey: string; fortuneId: string; createdAt: string }) => ({
     ...item,
     fortune: getFortuneById(item.fortuneId),
   }));

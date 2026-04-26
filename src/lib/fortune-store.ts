@@ -1,3 +1,5 @@
+import { hasDatabase, queryDb } from '@/lib/db';
+
 export type Fortune = {
   id: string;
   code: string;
@@ -57,12 +59,26 @@ export const toDateKey = (date = new Date()): string => date.toISOString().slice
 
 const drawKey = (userId: string, dateKey: string) => `${userId}:${dateKey}`;
 
-export function getTodayDraw(userId: string, dateKey = toDateKey()) {
-  return draws.get(drawKey(userId, dateKey)) ?? null;
+export function getFortuneById(fortuneId: string) {
+  return fortunePool.find((f) => f.id === fortuneId) ?? null;
 }
 
-export function drawToday(userId: string, dateKey = toDateKey()) {
-  const existing = getTodayDraw(userId, dateKey);
+export async function getTodayDraw(userId: string, dateKey = toDateKey()) {
+  if (!hasDatabase) {
+    return draws.get(drawKey(userId, dateKey)) ?? null;
+  }
+
+  const result = await queryDb<UserDraw>(
+    `select user_id as "userId", date_key as "dateKey", fortune_id as "fortuneId", created_at as "createdAt"
+     from user_draws where user_id = $1 and date_key = $2 limit 1`,
+    [userId, dateKey],
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function drawToday(userId: string, dateKey = toDateKey()) {
+  const existing = await getTodayDraw(userId, dateKey);
   if (existing) return existing;
 
   const seed = `${userId}:${dateKey}`.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
@@ -75,26 +91,67 @@ export function drawToday(userId: string, dateKey = toDateKey()) {
     createdAt: new Date().toISOString(),
   };
 
-  draws.set(drawKey(userId, dateKey), newDraw);
-  const current = drawsByUser.get(userId) ?? [];
-  drawsByUser.set(userId, [newDraw, ...current].slice(0, 30));
+  if (!hasDatabase) {
+    draws.set(drawKey(userId, dateKey), newDraw);
+    const current = drawsByUser.get(userId) ?? [];
+    drawsByUser.set(userId, [newDraw, ...current].slice(0, 30));
+    return newDraw;
+  }
 
-  return newDraw;
+  await queryDb(
+    `insert into user_draws(user_id, date_key, fortune_id)
+     values ($1, $2, $3)
+     on conflict (user_id, date_key) do nothing`,
+    [userId, dateKey, picked.id],
+  );
+
+  const inserted = await getTodayDraw(userId, dateKey);
+  return inserted ?? newDraw;
 }
 
-export function getFortuneById(fortuneId: string) {
-  return fortunePool.find((f) => f.id === fortuneId) ?? null;
+export async function getHistory(userId: string, limit = 7) {
+  if (!hasDatabase) {
+    return (drawsByUser.get(userId) ?? []).slice(0, limit);
+  }
+
+  const result = await queryDb<UserDraw>(
+    `select user_id as "userId", date_key as "dateKey", fortune_id as "fortuneId", created_at as "createdAt"
+     from user_draws where user_id = $1 order by date_key desc limit $2`,
+    [userId, limit],
+  );
+
+  return result.rows;
 }
 
-export function getHistory(userId: string, limit = 7) {
-  return (drawsByUser.get(userId) ?? []).slice(0, limit);
-}
+export async function upsertEntitlement(input: Entitlement) {
+  if (!hasDatabase) {
+    entitlements.set(drawKey(input.userId, input.dateKey), input);
+    return input;
+  }
 
-export function upsertEntitlement(input: Entitlement) {
-  entitlements.set(drawKey(input.userId, input.dateKey), input);
+  await queryDb(
+    `insert into entitlements(user_id, date_key, type, status, payment_tx_id)
+     values ($1, $2, $3, $4, $5)
+     on conflict (user_id, date_key, type)
+     do update set status = excluded.status, payment_tx_id = excluded.payment_tx_id, updated_at = now()`,
+    [input.userId, input.dateKey, input.type, input.status, input.paymentTxId],
+  );
+
   return input;
 }
 
-export function getEntitlement(userId: string, dateKey = toDateKey()) {
-  return entitlements.get(drawKey(userId, dateKey)) ?? null;
+export async function getEntitlement(userId: string, dateKey = toDateKey()) {
+  if (!hasDatabase) {
+    return entitlements.get(drawKey(userId, dateKey)) ?? null;
+  }
+
+  const result = await queryDb<Entitlement>(
+    `select user_id as "userId", date_key as "dateKey", type, status, payment_tx_id as "paymentTxId"
+     from entitlements
+     where user_id = $1 and date_key = $2 and type = 'daily_deep_read'
+     limit 1`,
+    [userId, dateKey],
+  );
+
+  return result.rows[0] ?? null;
 }

@@ -4,7 +4,7 @@ import { getRequestUserId } from '@/lib/request-user';
 
 export async function POST() {
   const userId = await getRequestUserId();
-  const draw = getTodayDraw(userId);
+  const draw = await getTodayDraw(userId);
 
   if (!draw) {
     return NextResponse.json(
@@ -15,7 +15,7 @@ export async function POST() {
 
   const paymentTxId = `pay_${Date.now()}`;
 
-  const entitlement = upsertEntitlement({
+  const entitlement = await upsertEntitlement({
     userId,
     dateKey: draw.dateKey,
     type: 'daily_deep_read',

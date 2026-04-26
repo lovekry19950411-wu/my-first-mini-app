@@ -4,9 +4,9 @@ import { getRequestUserId } from '@/lib/request-user';
 
 export async function POST() {
   const userId = await getRequestUserId();
-  const draw = drawToday(userId);
+  const draw = await drawToday(userId);
   const fortune = getFortuneById(draw.fortuneId);
-  const entitlement = getEntitlement(userId, draw.dateKey);
+  const entitlement = await getEntitlement(userId, draw.dateKey);
 
   return NextResponse.json({
     userId,

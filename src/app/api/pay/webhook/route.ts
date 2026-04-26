@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'missing fields' }, { status: 400 });
   }
 
-  const entitlement = upsertEntitlement({
+  const entitlement = await upsertEntitlement({
     userId: body.userId,
     dateKey: body.dateKey,
     type: 'daily_deep_read',

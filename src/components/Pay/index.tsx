@@ -1,81 +1,139 @@
-'use client';
-import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
-import { MiniKit } from '@worldcoin/minikit-js';
-import { Tokens, tokenToDecimals } from '@worldcoin/minikit-js/commands';
-import { useState } from 'react';
+"use client";
 
-/**
- * This component is used to pay a user
- * The payment command simply does an ERC20 transfer
- * But, it also includes a reference field that you can search for on-chain
- */
+import { Button, LiveFeedback } from "@worldcoin/mini-apps-ui-kit-react";
+import { MiniKit } from "@worldcoin/minikit-js";
+import { Tokens, tokenToDecimals } from "@worldcoin/minikit-js/commands";
+import { useState } from "react";
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const Pay = () => {
   const [buttonState, setButtonState] = useState<
-    'pending' | 'success' | 'failed' | undefined
+    "pending" | "success" | "failed" | undefined
   >(undefined);
+  const [deepInsightUnlocked, setDeepInsightUnlocked] = useState(false);
+  const [errorText, setErrorText] = useState("");
 
   const onClickPay = async () => {
-    // Lets use Alex's username to pay!
-    const address = (await MiniKit.getUserByUsername('alex')).walletAddress;
-    setButtonState('pending');
-
-    const res = await fetch('/api/initiate-payment', {
-      method: 'POST',
-    });
-    const { id } = await res.json();
+    setButtonState("pending");
+    setErrorText("");
 
     try {
-      const result = await MiniKit.pay({
-        reference: id,
-        to: address ?? '0x0000000000000000000000000000000000000000',
+      const initRes = await fetch("/api/initiate-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: "world-user" }),
+      });
+
+      if (!initRes.ok) {
+        throw new Error("Unable to initialize payment.");
+      }
+
+      const { amount, recipient, reference } = (await initRes.json()) as {
+        amount: string;
+        recipient: string;
+        reference: string;
+      };
+
+      const payResult = await MiniKit.pay({
+        description: "Unlock deep fortune analysis",
+        reference,
+        to: recipient,
         tokens: [
           {
             symbol: Tokens.WLD,
-            token_amount: tokenToDecimals(0.5, Tokens.WLD).toString(),
-          },
-          {
-            symbol: Tokens.USDC,
-            token_amount: tokenToDecimals(0.1, Tokens.USDC).toString(),
+            token_amount: tokenToDecimals(
+              Number(amount),
+              Tokens.WLD,
+            ).toString(),
           },
         ],
-        description: 'Test example payment for minikit',
       });
 
-      console.log(result.data);
-      setButtonState('success');
-      // It's important to actually check the transaction result on-chain
-      // You should confirm the reference id matches for security
-      // Read more here: https://docs.world.org/mini-apps/commands/pay#verifying-the-payment
-    } catch {
-      setButtonState('failed');
-      setTimeout(() => {
-        setButtonState(undefined);
-      }, 3000);
+      await fetch("/api/pay/confirm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reference,
+          transactionHash:
+            (payResult as { data?: { transaction_id?: string } }).data
+              ?.transaction_id ?? undefined,
+        }),
+      });
+
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const statusRes = await fetch(`/api/pay/status?reference=${reference}`);
+        if (!statusRes.ok) {
+          await wait(600);
+          continue;
+        }
+
+        const { payment } = (await statusRes.json()) as {
+          payment: { status: "pending" | "paid" | "failed" };
+        };
+
+        if (payment.status === "paid") {
+          setDeepInsightUnlocked(true);
+          setButtonState("success");
+          return;
+        }
+
+        if (payment.status === "failed") {
+          throw new Error("Payment was rejected.");
+        }
+
+        await wait(600);
+      }
+
+      throw new Error(
+        "Payment submitted. Waiting for webhook confirmation, please try again shortly.",
+      );
+    } catch (error) {
+      setButtonState("failed");
+      setDeepInsightUnlocked(false);
+      setErrorText(
+        error instanceof Error
+          ? error.message
+          : "Payment failed. Please try again.",
+      );
     }
   };
 
   return (
     <div className="grid w-full gap-4">
-      <p className="text-lg font-semibold">Pay</p>
+      <p className="text-lg font-semibold">解鎖深度解析（0.01 WLD）</p>
       <LiveFeedback
         label={{
-          failed: 'Payment failed',
-          pending: 'Payment pending',
-          success: 'Payment successful',
+          failed: "解鎖失敗",
+          pending: "支付進行中",
+          success: "解鎖成功",
         }}
         state={buttonState}
         className="w-full"
       >
         <Button
           onClick={onClickPay}
-          disabled={buttonState === 'pending'}
+          disabled={buttonState === "pending" || deepInsightUnlocked}
           size="lg"
           variant="primary"
           className="w-full"
         >
-          Pay
+          {deepInsightUnlocked ? "已解鎖深度解析" : "解鎖深度解析"}
         </Button>
       </LiveFeedback>
+
+      {errorText ? <p className="text-sm text-red-500">{errorText}</p> : null}
+
+      {deepInsightUnlocked ? (
+        <div className="rounded-2xl border border-green-400/40 bg-green-400/10 p-4 text-sm">
+          深度解析：你今天屬於「穩健上升」運勢，適合把大目標切成 2–3
+          個可執行小步驟， 晚上回顧時你會看到非常清楚的進展。
+        </div>
+      ) : null}
     </div>
   );
 };

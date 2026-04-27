@@ -1,5 +1,7 @@
 'use client';
 
+import { MiniKit } from '@worldcoin/minikit-js';
+import { Tokens, tokenToDecimals } from '@worldcoin/minikit-js/commands';
 import { useState } from 'react';
 
 type Fortune = {
@@ -28,7 +30,13 @@ type TodayResponse = {
 
 type HistoryItem = Draw & { fortune: Fortune | null };
 
-const demoUserHeader = { 'x-demo-user': 'demo-alice' };
+type UnlockResponse = {
+  paymentReference: string;
+  userId: string;
+  dateKey: string;
+  amount: string;
+  currency: string;
+};
 
 export function FortuneMvpPanel() {
   const [today, setToday] = useState<TodayResponse | null>(null);
@@ -39,10 +47,16 @@ export function FortuneMvpPanel() {
   const fetchToday = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/fortune/today', { headers: demoUserHeader });
-      const data = (await res.json()) as TodayResponse;
-      setToday(data);
-      setStatus(data.draw ? '已載入今日籤文' : '今天還沒抽，請先抽卡');
+      const res = await fetch('/api/fortune/today');
+      const data = (await res.json()) as TodayResponse | { error: string };
+
+      if (!res.ok) {
+        setStatus((data as { error: string }).error ?? '讀取今日狀態失敗');
+        return;
+      }
+
+      setToday(data as TodayResponse);
+      setStatus((data as TodayResponse).draw ? '已載入今日籤文' : '今天還沒抽，請先抽卡');
     } catch {
       setStatus('讀取今日狀態失敗');
     } finally {
@@ -55,10 +69,15 @@ export function FortuneMvpPanel() {
     try {
       const res = await fetch('/api/fortune/draw', {
         method: 'POST',
-        headers: demoUserHeader,
       });
-      const data = (await res.json()) as TodayResponse;
-      setToday(data);
+      const data = (await res.json()) as TodayResponse | { error: string };
+
+      if (!res.ok) {
+        setStatus((data as { error: string }).error ?? '抽卡失敗，請稍後重試');
+        return;
+      }
+
+      setToday(data as TodayResponse);
       setStatus('抽卡成功！');
     } catch {
       setStatus('抽卡失敗，請稍後重試');
@@ -70,19 +89,55 @@ export function FortuneMvpPanel() {
   const unlockDeepRead = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/pay/unlock', {
-        method: 'POST',
-        headers: demoUserHeader,
+      const unlockRes = await fetch('/api/pay/unlock', { method: 'POST' });
+      const unlockData = (await unlockRes.json()) as UnlockResponse | { error: string };
+
+      if (!unlockRes.ok) {
+        setStatus((unlockData as { error: string }).error ?? '無法建立支付訂單');
+        return;
+      }
+
+      const payee = process.env.NEXT_PUBLIC_FORTUNE_RECEIVER;
+      if (!payee) {
+        setStatus('尚未設定收款錢包（NEXT_PUBLIC_FORTUNE_RECEIVER）');
+        return;
+      }
+
+      const paymentResult = await MiniKit.pay({
+        reference: (unlockData as UnlockResponse).paymentReference,
+        to: payee,
+        tokens: [
+          {
+            symbol: Tokens.USDC,
+            token_amount: tokenToDecimals(Number((unlockData as UnlockResponse).amount), Tokens.USDC).toString(),
+          },
+        ],
+        description: `Fortune deep read ${(unlockData as UnlockResponse).dateKey}`,
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        setStatus(errorData.error ?? '解鎖失敗');
+      const txId = paymentResult.data.transactionId;
+      if (!txId) {
+        setStatus('支付成功但缺少交易編號，請聯絡客服');
+        return;
+      }
+
+      const confirmRes = await fetch('/api/pay/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dateKey: (unlockData as UnlockResponse).dateKey,
+          paymentTxId: txId,
+          status: 'active',
+        }),
+      });
+
+      if (!confirmRes.ok) {
+        setStatus('支付成功，但解鎖同步失敗，請稍後重試');
         return;
       }
 
       await fetchToday();
-      setStatus('深度解析已解鎖');
+      setStatus('支付成功，深度解析已解鎖');
     } catch {
       setStatus('支付流程失敗，請重試');
     } finally {
@@ -93,10 +148,14 @@ export function FortuneMvpPanel() {
   const loadHistory = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/fortune/history?limit=7', {
-        headers: demoUserHeader,
-      });
-      const data = (await res.json()) as { history: HistoryItem[] };
+      const res = await fetch('/api/fortune/history?limit=7');
+      const data = (await res.json()) as { history?: HistoryItem[]; error?: string };
+
+      if (!res.ok) {
+        setStatus(data.error ?? '讀取歷史失敗');
+        return;
+      }
+
       setHistory(data.history ?? []);
       setStatus('已載入最近 7 天紀錄');
     } catch {
@@ -108,8 +167,8 @@ export function FortuneMvpPanel() {
 
   return (
     <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-amber-50/40 p-4 shadow-sm">
-      <h2 className="text-lg font-semibold text-amber-900">Fortune Loop MVP Demo</h2>
-      <p className="mt-1 text-sm text-amber-800">Demo User: demo-alice（可先驗證完整流程）</p>
+      <h2 className="text-lg font-semibold text-amber-900">Fortune Loop</h2>
+      <p className="mt-1 text-sm text-amber-800">完成支付後才可查看當日深度解析。</p>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <button className="rounded-lg bg-black px-3 py-2 text-sm text-white" onClick={fetchToday} disabled={loading}>
@@ -119,7 +178,7 @@ export function FortuneMvpPanel() {
           今日抽卡
         </button>
         <button className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white" onClick={unlockDeepRead} disabled={loading}>
-          解鎖深度解析
+          支付解鎖深度解析
         </button>
         <button className="rounded-lg bg-slate-700 px-3 py-2 text-sm text-white" onClick={loadHistory} disabled={loading}>
           讀取歷史
@@ -136,11 +195,15 @@ export function FortuneMvpPanel() {
           <div className="mt-2 space-y-2">
             <p className="text-sm font-medium text-slate-900">{today.fortune.titleZh}</p>
             <p className="text-sm text-slate-700">{today.fortune.bodyZh}</p>
-            <p className="text-xs text-slate-600">今日行動：{today.fortune.actionZh}</p>
             <p className="text-xs text-slate-600">日期：{today.draw.dateKey}</p>
             <p className="text-xs font-semibold text-emerald-700">
               深度解析：{today.deepReadUnlocked ? '已解鎖' : '未解鎖'}
             </p>
+            {today.deepReadUnlocked ? (
+              <p className="text-xs text-slate-700">今日行動（深度解析）：{today.fortune.actionZh}</p>
+            ) : (
+              <p className="text-xs text-slate-500">支付完成後可查看今日行動建議。</p>
+            )}
           </div>
         )}
       </div>

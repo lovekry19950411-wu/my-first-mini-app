@@ -84,6 +84,17 @@ git commit -m "chore: migrate <feature-name> from project-b"
 
 你可以直接照下面提供，我就能幫你把「付款成功 -> 自動開通會員」完整接起來。
 
+你提到的 **WLD 99 成長方案（thirdweb 會員）是可用的**，但它主要影響 thirdweb API 額度/優惠，**不會自動替代 MiniKit 的支付驗證流程**。
+
+> 另外你截圖裡有露出 `x-client-id`，建議現在就去 thirdweb 後台重新產生（rotate）一組新的 key。
+
+### 如果你要我直接接 thirdweb，請再補這 4 個值
+
+- `THIRDWEB_CLIENT_ID`
+- `THIRDWEB_SECRET_KEY`（只放伺服器，不可放前端）
+- `THIRDWEB_API_BASE`（通常 `https://api.thirdweb.com`）
+- 你要呼叫的「會員升級 endpoint」路徑與 body 範例
+
 ### 你要提供的 6 個資訊（照抄模板填空）
 
 1. **會員系統 API Base URL**

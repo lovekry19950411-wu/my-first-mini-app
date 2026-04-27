@@ -80,6 +80,62 @@ git commit -m "chore: migrate <feature-name> from project-b"
 
 > 注意：你訊息最後的 `AUTH_SECRET=...DATABASE_URL=...` 少了一個換行。請分成兩行，不然 `.env` 會解析錯誤。
 
+## 第三方會員系統（你說的「第三網會員功能」）要怎麼提供給我
+
+你可以直接照下面提供，我就能幫你把「付款成功 -> 自動開通會員」完整接起來。
+
+### 你要提供的 6 個資訊（照抄模板填空）
+
+1. **會員系統 API Base URL**
+   - 例如：`https://api.your-membership.com`
+2. **建立/更新會員的 API 文件**
+   - Endpoint、Method、Request/Response JSON、錯誤碼
+3. **API 認證方式**
+   - Bearer Token / API Key / HMAC（請說明 Header 名稱）
+4. **會員唯一識別欄位**
+   - 用 `walletAddress` 還是 `worldUserId` 當主鍵
+5. **付款成功後要開通的方案代碼**
+   - 例如：`PLAN_DEEP_ANALYSIS_MONTHLY`
+6. **Webhook 驗簽規則**
+   - 簽名演算法、header 名稱、範例 payload
+
+### 建議你貼給我的格式（可直接複製）
+
+```txt
+[Membership API]
+BASE_URL=
+AUTH_TYPE=Bearer
+AUTH_HEADER=Authorization
+API_KEY=
+
+[Upsert Endpoint]
+METHOD=POST
+PATH=/v1/memberships/upsert
+BODY_EXAMPLE={"userId":"...","plan":"PLAN_DEEP_ANALYSIS_MONTHLY","expiresAt":"..."}
+
+[Identity Mapping]
+PRIMARY_KEY=worldUserId
+FALLBACK_KEY=walletAddress
+
+[Webhook]
+SIGNATURE_HEADER=
+SIGNATURE_ALGO=
+WEBHOOK_SAMPLE={...}
+```
+
+### 安全提醒（很重要）
+
+- **不要提供私鑰/助記詞**。
+- 可提供 API key，但建議先開一組「最小權限、可隨時撤銷」的測試 key。
+- 正式上線前我會再幫你把 key 全部改讀 `.env.local`，不寫死在程式碼。
+
+### 我拿到資料後會做什麼
+
+1. 在 `src/app/api/pay/webhook/route.ts` 加入付款成功後的會員開通呼叫。
+2. 加入重試與冪等（避免 webhook 重送重複開通）。
+3. 把結果回寫到資料庫（取代目前 in-memory）。
+4. 提供你一鍵 smoke test 清單（你直接貼指令就能驗證）。
+
 ## Authentication
 
 This starter kit uses [Minikit's](https://github.com/worldcoin/minikit-js) wallet auth to authenticate users, and [next-auth](https://authjs.dev/getting-started) to manage sessions.

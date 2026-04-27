@@ -42,7 +42,7 @@ npm run dev -- --hostname 0.0.0.0 --port 3000
 5. 回到今日結果，確認「深度解析：已解鎖」並看到「今日行動（深度解析）」。
 6. 按「讀取歷史」確認有近 7 天資料。
 
----
+> 如果你在 macOS：可用 `brew install agent-browser`，再跑 `agent-browser install`。
 
 ## 4) 補助申請與收款欄位建議（你目前兩個地址）
 
@@ -55,7 +55,7 @@ npm run dev -- --hostname 0.0.0.0 --port 3000
 2. 申請表「Founder / Identity / Verified World App wallet」：填 `0x8bfe4647304e9564c48f4457e5082275f200042f`。
 3. 如果表單只有一個地址欄位，優先填 **專案收款地址** `0xC131...4e20`，並在備註補上 `0x8bfe...042f` 為身份驗證錢包。
 
----
+再另開一個終端執行（可先手動登入，再用 profile 保留 session）：
 
 ## 5) 今日 Done 定義
 
@@ -63,60 +63,3 @@ npm run dev -- --hostname 0.0.0.0 --port 3000
 - [ ] 深度解析預設不可見，支付成功後才可見
 - [ ] 收款地址不是零地址（必填）
 - [ ] 歷史頁可看到至少 1 筆資料
-
----
-
-## 6) 讓 AI 具備 Agent Browser 能力（自動測 NXZ 支付流）
-
-參考文件：<https://github.com/vercel-labs/agent-browser>
-
-### 安裝（Linux 開發機建議）
-
-```bash
-npm install -g agent-browser
-agent-browser install --with-deps
-agent-browser doctor
-```
-
-> 如果你在 macOS：可用 `brew install agent-browser`，再跑 `agent-browser install`。
-
-### 快速驗證可用
-
-```bash
-agent-browser open http://localhost:3000
-agent-browser snapshot
-agent-browser screenshot ./artifacts/home.png
-agent-browser close
-```
-
-### 建議的 NXZ 支付流自動化腳本（範例）
-
-先啟動專案：
-
-```bash
-npm run dev -- --hostname 0.0.0.0 --port 3000
-```
-
-再另開一個終端執行（可先手動登入，再用 profile 保留 session）：
-
-```bash
-agent-browser open http://localhost:3000 --profile nxz-dev
-agent-browser wait --text "Fortune Loop"
-agent-browser find role button click --name "查今日狀態"
-agent-browser find role button click --name "今日抽卡"
-agent-browser find role button click --name "支付解鎖深度解析"
-agent-browser wait --text "深度解析：已解鎖"
-agent-browser screenshot ./artifacts/payment-unlocked.png
-agent-browser close
-```
-
-### 給 AI 的指令模板（可直接貼給 Claude / Codex）
-
-```text
-請使用 agent-browser 幫我自動測試 NXZ 支付流：
-1) 開啟 http://localhost:3000（使用 profile: nxz-dev）
-2) 點「查今日狀態」→「今日抽卡」→「支付解鎖深度解析」
-3) 驗證頁面出現「深度解析：已解鎖」
-4) 輸出完整操作日誌與截圖路徑
-5) 若失敗，回報失敗步驟、DOM 快照與重現建議
-```

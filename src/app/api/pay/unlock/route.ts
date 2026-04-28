@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json().catch(() => ({}))) as UnlockRequest;
-    const paymentTxId = body.paymentReference ?? `payref_${crypto.randomUUID().replace(/-/g, '')}`;
+    const paymentTxId = body.paymentReference ?? crypto.randomUUID();
 
     const entitlement = await upsertEntitlement({
       userId,
@@ -47,3 +47,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '無法建立支付訂單' }, { status: 500 });
   }
 }
+

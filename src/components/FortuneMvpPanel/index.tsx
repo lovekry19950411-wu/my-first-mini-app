@@ -97,14 +97,6 @@ export function FortuneMvpPanel() {
         return;
       }
 
-<<<<<<< ours
-<<<<<<< ours
-      const paymentResult = await MiniKit.pay({
-        reference: (unlockData as UnlockResponse).paymentReference,
-        to: process.env.NEXT_PUBLIC_FORTUNE_RECEIVER ?? '0x0000000000000000000000000000000000000000',
-=======
-=======
->>>>>>> theirs
       const payee = process.env.NEXT_PUBLIC_FORTUNE_RECEIVER;
       if (!payee) {
         setStatus('尚未設定收款錢包（NEXT_PUBLIC_FORTUNE_RECEIVER）');
@@ -114,10 +106,6 @@ export function FortuneMvpPanel() {
       const paymentResult = await MiniKit.pay({
         reference: (unlockData as UnlockResponse).paymentReference,
         to: payee,
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
         tokens: [
           {
             symbol: Tokens.USDC,

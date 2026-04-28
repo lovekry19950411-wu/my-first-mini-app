@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  Button,
+  LiveFeedback,
+  BottomSheet,
+  Haptic,
+} from '@worldcoin/mini-apps-ui-kit-react';
 import { MiniKit } from '@worldcoin/minikit-js';
 import { Tokens, tokenToDecimals } from '@worldcoin/minikit-js/commands';
 import { useState } from 'react';
@@ -28,8 +34,6 @@ type TodayResponse = {
   deepReadUnlocked: boolean;
 };
 
-type HistoryItem = Draw & { fortune: Fortune | null };
-
 type UnlockResponse = {
   paymentReference: string;
   userId: string;
@@ -40,189 +44,172 @@ type UnlockResponse = {
 
 export function FortuneMvpPanel() {
   const [today, setToday] = useState<TodayResponse | null>(null);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [status, setStatus] = useState('準備就緒，先點「查今日狀態」');
+  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const [payState, setPayState] = useState<'pending' | 'success' | 'failed' | undefined>(undefined);
+  const [showShare, setShowShare] = useState(false);
 
   const fetchToday = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/fortune/today');
-      const data = (await res.json()) as TodayResponse | { error: string };
-
-      if (!res.ok) {
-        setStatus((data as { error: string }).error ?? '讀取今日狀態失敗');
-        return;
-      }
-
+      const data = await res.json() as TodayResponse | { error: string };
+      if (!res.ok) { setStatus((data as { error: string }).error ?? '讀取失敗'); return; }
       setToday(data as TodayResponse);
-      setStatus((data as TodayResponse).draw ? '已載入今日籤文' : '今天還沒抽，請先抽卡');
-    } catch {
-      setStatus('讀取今日狀態失敗');
-    } finally {
-      setLoading(false);
-    }
+      setStatus('');
+    } catch { setStatus('讀取失敗'); }
+    finally { setLoading(false); }
   };
 
   const drawToday = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/fortune/draw', {
-        method: 'POST',
-      });
-      const data = (await res.json()) as TodayResponse | { error: string };
-
-      if (!res.ok) {
-        setStatus((data as { error: string }).error ?? '抽卡失敗，請稍後重試');
-        return;
-      }
-
+      const res = await fetch('/api/fortune/draw', { method: 'POST' });
+      const data = await res.json() as TodayResponse | { error: string };
+      if (!res.ok) { setStatus((data as { error: string }).error ?? '抽卡失敗'); return; }
       setToday(data as TodayResponse);
-      setStatus('抽卡成功！');
-    } catch {
-      setStatus('抽卡失敗，請稍後重試');
-    } finally {
-      setLoading(false);
-    }
+      setStatus('');
+    } catch { setStatus('抽卡失敗'); }
+    finally { setLoading(false); }
   };
 
   const unlockDeepRead = async () => {
-    setLoading(true);
+    setPayState('pending');
     try {
       const unlockRes = await fetch('/api/pay/unlock', { method: 'POST' });
-      const unlockData = (await unlockRes.json()) as UnlockResponse | { error: string };
-
-      if (!unlockRes.ok) {
-        setStatus((unlockData as { error: string }).error ?? '無法建立支付訂單');
-        return;
-      }
+      const unlockData = await unlockRes.json() as UnlockResponse | { error: string };
+      if (!unlockRes.ok) { setPayState('failed'); setTimeout(() => setPayState(undefined), 3000); return; }
 
       const payee = process.env.NEXT_PUBLIC_FORTUNE_RECEIVER;
-      if (!payee) {
-        setStatus('尚未設定收款錢包（NEXT_PUBLIC_FORTUNE_RECEIVER）');
-        return;
-      }
+      if (!payee) { setPayState('failed'); setTimeout(() => setPayState(undefined), 3000); return; }
 
       const paymentResult = await MiniKit.pay({
         reference: (unlockData as UnlockResponse).paymentReference,
         to: payee,
-        tokens: [
-          {
-            symbol: Tokens.USDC,
-            token_amount: tokenToDecimals(Number((unlockData as UnlockResponse).amount), Tokens.USDC).toString(),
-          },
-        ],
-        description: `Fortune deep read ${(unlockData as UnlockResponse).dateKey}`,
+        tokens: [{
+          symbol: Tokens.USDC,
+          token_amount: tokenToDecimals(Number((unlockData as UnlockResponse).amount), Tokens.USDC).toString(),
+        }],
+        description: `每日籤詩深度解析 ${(unlockData as UnlockResponse).dateKey}`,
       });
 
       const txId = paymentResult.data.transactionId;
-      if (!txId) {
-        setStatus('支付成功但缺少交易編號，請聯絡客服');
-        return;
-      }
+      if (!txId) { setPayState('failed'); setTimeout(() => setPayState(undefined), 3000); return; }
 
-      const confirmRes = await fetch('/api/pay/webhook', {
+      await fetch('/api/pay/webhook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dateKey: (unlockData as UnlockResponse).dateKey,
-          paymentTxId: txId,
-          status: 'active',
-        }),
+        body: JSON.stringify({ dateKey: (unlockData as UnlockResponse).dateKey, paymentTxId: txId, status: 'active' }),
       });
 
-      if (!confirmRes.ok) {
-        setStatus('支付成功，但解鎖同步失敗，請稍後重試');
-        return;
-      }
-
       await fetchToday();
-      setStatus('支付成功，深度解析已解鎖');
-    } catch {
-      setStatus('支付流程失敗，請重試');
-    } finally {
-      setLoading(false);
-    }
+      setPayState('success');
+      setTimeout(() => setPayState(undefined), 3000);
+    } catch { setPayState('failed'); setTimeout(() => setPayState(undefined), 3000); }
   };
 
-  const loadHistory = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/fortune/history?limit=7');
-      const data = (await res.json()) as { history?: HistoryItem[]; error?: string };
-
-      if (!res.ok) {
-        setStatus(data.error ?? '讀取歷史失敗');
-        return;
-      }
-
-      setHistory(data.history ?? []);
-      setStatus('已載入最近 7 天紀錄');
-    } catch {
-      setStatus('讀取歷史失敗');
-    } finally {
-      setLoading(false);
+  const shareResult = () => {
+    if (!today?.fortune) return;
+    const text = `🔮 今日籤詩：${today.fortune.titleZh}\n\n「${today.fortune.bodyZh}」\n\n在 World App 每日籤詩抽屬於你的今日運勢 👇`;
+    if (navigator.share) {
+      navigator.share({ title: '每日籤詩', text });
+    } else {
+      navigator.clipboard.writeText(text);
+      setStatus('已複製到剪貼簿！');
     }
+    setShowShare(false);
   };
+
+  const rarityColor = today?.fortune?.rarity === 'rare' ? 'text-amber-600' : 'text-slate-600';
+  const rarityLabel = today?.fortune?.rarity === 'rare' ? '✦ 稀有' : '普通';
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-amber-50/40 p-4 shadow-sm">
-      <h2 className="text-lg font-semibold text-amber-900">Fortune Loop</h2>
-      <p className="mt-1 text-sm text-amber-800">完成支付後才可查看當日深度解析。</p>
+    <div className="w-full max-w-md flex flex-col gap-3 px-1">
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button className="rounded-lg bg-black px-3 py-2 text-sm text-white" onClick={fetchToday} disabled={loading}>
-          查今日狀態
-        </button>
-        <button className="rounded-lg bg-amber-600 px-3 py-2 text-sm text-white" onClick={drawToday} disabled={loading}>
-          今日抽卡
-        </button>
-        <button className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white" onClick={unlockDeepRead} disabled={loading}>
-          支付解鎖深度解析
-        </button>
-        <button className="rounded-lg bg-slate-700 px-3 py-2 text-sm text-white" onClick={loadHistory} disabled={loading}>
-          讀取歷史
-        </button>
-      </div>
-
-      <p className="mt-3 text-sm text-slate-700">狀態：{loading ? '處理中...' : status}</p>
-
-      <div className="mt-4 rounded-xl bg-white p-3">
-        <h3 className="text-sm font-semibold text-slate-900">今日結果</h3>
-        {!today?.draw || !today.fortune ? (
-          <p className="mt-2 text-sm text-slate-500">尚未抽卡</p>
+      {/* 今日籤卡 */}
+      <div className="w-full rounded-2xl border border-amber-100 bg-gradient-to-b from-amber-50 to-white p-5 shadow-sm">
+        {!today?.fortune ? (
+          <div className="flex flex-col items-center justify-center py-8 gap-2">
+            <p className="text-4xl">🔮</p>
+            <p className="text-sm text-slate-500 text-center">點下方按鈕，查看今日籤詩</p>
+          </div>
         ) : (
-          <div className="mt-2 space-y-2">
-            <p className="text-sm font-medium text-slate-900">{today.fortune.titleZh}</p>
-            <p className="text-sm text-slate-700">{today.fortune.bodyZh}</p>
-            <p className="text-xs text-slate-600">日期：{today.draw.dateKey}</p>
-            <p className="text-xs font-semibold text-emerald-700">
-              深度解析：{today.deepReadUnlocked ? '已解鎖' : '未解鎖'}
-            </p>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className={`text-xs font-semibold ${rarityColor}`}>{rarityLabel}</span>
+              <span className="text-xs text-slate-400">{today.draw?.dateKey}</span>
+            </div>
+            <p className="text-xl font-semibold text-amber-900">{today.fortune.titleZh}</p>
+            <p className="text-sm text-slate-700 leading-relaxed">「{today.fortune.bodyZh}」</p>
+
             {today.deepReadUnlocked ? (
-              <p className="text-xs text-slate-700">今日行動（深度解析）：{today.fortune.actionZh}</p>
+              <div className="mt-2 rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                <p className="text-xs font-semibold text-emerald-700 mb-1">✓ 深度解析已解鎖</p>
+                <p className="text-sm text-slate-700">{today.fortune.actionZh}</p>
+              </div>
             ) : (
-              <p className="text-xs text-slate-500">支付完成後可查看今日行動建議。</p>
+              <div className="mt-2 rounded-xl bg-slate-50 border border-slate-100 p-3">
+                <p className="text-xs text-slate-400">🔒 支付 $0.30 USDC 解鎖今日行動建議</p>
+              </div>
             )}
           </div>
         )}
       </div>
 
-      <div className="mt-4 rounded-xl bg-white p-3">
-        <h3 className="text-sm font-semibold text-slate-900">最近 7 天</h3>
-        {history.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">尚無資料</p>
+      {/* 狀態訊息 */}
+      {status ? <p className="text-xs text-center text-slate-500">{status}</p> : null}
+
+      {/* 主要按鈕區 */}
+      <div className="flex flex-col gap-2">
+        {!today?.draw ? (
+          <>
+            <Button onClick={fetchToday} disabled={loading} size="lg" variant="secondary" className="w-full">
+              查今日狀態
+            </Button>
+            <Button onClick={drawToday} disabled={loading} size="lg" variant="primary" className="w-full">
+              {loading ? '抽卡中...' : '🎴 今日抽卡'}
+            </Button>
+          </>
         ) : (
-          <ul className="mt-2 space-y-2">
-            {history.map((item) => (
-              <li key={`${item.userId}-${item.dateKey}`} className="rounded-md border border-slate-200 p-2 text-sm">
-                <p className="font-medium">{item.fortune?.titleZh ?? '未知卡片'}</p>
-                <p className="text-xs text-slate-600">{item.dateKey}</p>
-              </li>
-            ))}
-          </ul>
+          <>
+            {!today.deepReadUnlocked && (
+              <LiveFeedback
+                label={{ pending: '支付中...', success: '解鎖成功！', failed: '支付失敗' }}
+                state={payState}
+                className="w-full"
+              >
+                <Button onClick={unlockDeepRead} disabled={payState === 'pending'} size="lg" variant="primary" className="w-full">
+                  解鎖深度解析 · $0.30 USDC
+                </Button>
+              </LiveFeedback>
+            )}
+            <Button onClick={() => setShowShare(true)} size="lg" variant="secondary" className="w-full">
+              分享今日籤詩 ↗
+            </Button>
+            <Button onClick={drawToday} disabled={loading} size="sm" variant="tertiary" className="w-full text-slate-400">
+              重新查詢
+            </Button>
+          </>
         )}
       </div>
+
+      {/* 分享 BottomSheet */}
+      <BottomSheet isOpen={showShare} onClose={() => setShowShare(false)}>
+        <div className="flex flex-col gap-4 p-4 pb-8">
+          <p className="text-base font-semibold text-center">分享今日籤詩</p>
+          <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 text-center">
+            <p className="text-lg font-semibold text-amber-900 mb-2">{today?.fortune?.titleZh}</p>
+            <p className="text-sm text-slate-600">「{today?.fortune?.bodyZh}」</p>
+          </div>
+          <Button onClick={shareResult} size="lg" variant="primary" className="w-full">
+            分享 / 複製文字
+          </Button>
+          <Button onClick={() => setShowShare(false)} size="lg" variant="secondary" className="w-full">
+            取消
+          </Button>
+        </div>
+      </BottomSheet>
+
     </div>
   );
 }

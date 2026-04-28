@@ -106,13 +106,6 @@ export function FortuneMvpPanel() {
       const paymentResult = await MiniKit.pay({
         reference: (unlockData as UnlockResponse).paymentReference,
         to: payee,
-        {
-            symbol: Tokens.USDC,
-            token_amount: tokenToDecimals(Number((unlockData as UnlockResponse).amount), Tokens.USDC).toString(),
-        },
-    ],
-    description: `Fortune deep read ${(unlockData as UnlockResponse).dateKey}`,
-});
         tokens: [
           {
             symbol: Tokens.USDC,

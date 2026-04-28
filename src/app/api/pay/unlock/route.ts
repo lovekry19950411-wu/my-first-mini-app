@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       sku: 'daily_deep_read',
-      amount: '1.99',
+      amount: '0.30',
       currency: 'USD',
       paymentReference: paymentTxId,
       userId,

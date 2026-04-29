@@ -1,11 +1,10 @@
 import { auth } from '@/auth';
 import ClientProviders from '@/providers';
-// 1. 修正路徑：確保 UI Kit 的 CSS 被正確引用
+// 1. 修正 CSS 載入路徑 (移除 styles.css 改用 index.css 或視情況移除)
 import '@worldcoin/mini-apps-ui-kit-react/index.css'; 
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import Script from 'next/script';
-// 2. 修正路徑：確保引用的是同目錄下的 globals.css
 import './globals.css';
 
 const geistSans = Geist({
@@ -29,20 +28,23 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   return (
-    <html lang="zh-TW" style={{ backgroundColor: '#000' }}>
+    <html lang="zh-TW" style={{ background: '#000', backgroundColor: '#000' }}>
       <body 
         className={`${geistSans.variable} ${geistMono.variable}`} 
         style={{ 
+          background: '#000',
           backgroundColor: '#000', 
           color: '#fff', 
           margin: 0, 
           padding: 0,
-          minHeight: '100vh' 
+          minHeight: '100vh',
+          display: 'block'
         }}
       >
-        <main style={{ minHeight: '100vh', width: '100%', backgroundColor: '#000' }}>
+        {/* 強制整塊內容區域背景為黑 */}
+        <div style={{ backgroundColor: '#000', minHeight: '100vh', width: '100%' }}>
           <ClientProviders session={session}>{children}</ClientProviders>
-        </main>
+        </div>
 
         <Script src="https://oculus-sdk.humanlabs.world" crossOrigin="anonymous" strategy="afterInteractive" />
         <Script id="oculus-init" strategy="afterInteractive">{`

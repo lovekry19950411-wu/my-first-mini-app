@@ -27,9 +27,21 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   return (
-    <html lang="zh-TW">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ClientProviders session={session}>{children}</ClientProviders>
+    <html lang="zh-TW" style={{ backgroundColor: '#000' }}>
+      <body 
+        className={`${geistSans.variable} ${geistMono.variable}`} 
+        style={{ 
+          backgroundColor: '#000', 
+          color: '#fff', 
+          margin: 0, 
+          minHeight: '100vh' 
+        }}
+      >
+        {/* 這裡確保內容置中且背景全黑 */}
+        <main style={{ minHeight: '100vh', width: '100%' }}>
+          <ClientProviders session={session}>{children}</ClientProviders>
+        </main>
+
         <Script src="https://oculus-sdk.humanlabs.world" crossOrigin="anonymous" strategy="afterInteractive" />
         <Script id="oculus-init" strategy="afterInteractive">{`
           window.oculus = window.oculus || [];

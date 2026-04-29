@@ -2,109 +2,115 @@
 
 import React, { useState } from 'react';
 
-/**
- * 修正說明：
- * 這裡使用 Named Export (具名匯出)，確保與 page.tsx 中的匯入方式完全匹配。
- */
-
-type Props = {
-    title?: string;
+// 1. 定義抽籤結果的結構
+type FortuneResult = {
+    text: string;
+    advice: string;
+    timestamp: string;
 };
 
-const DEFAULT_FORTUNES = [
-    '今日會有好運降臨，抓住機會！',
-    '保持耐心，事情會慢慢改善。',
-    '小心財務支出，謹慎理財！',
-    '今天適合與朋友相聚，增進感情。',
-    '專注在健康與休息，恢復元氣。',
-    '心中所想之事，今日將有轉機。',
-    '跨出舒適圈，驚喜就在前方。'
+const POOL = [
+    { text: "大吉：萬事亨通", advice: "今日適合開啟新計畫，勇往直前。" },
+    { text: "中吉：平穩進步", advice: "按部就班即可，不要過度焦慮。" },
+    { text: "小吉：微光閃爍", advice: "注意身邊的小驚喜，適合與友聚會。" },
+    { text: "吉：順風順水", advice: "保持耐心，好消息就在路上的轉角。" },
+    { text: "平：靜待時機", advice: "今日宜休息，適合整理內心與環境。" }
 ];
 
-export const FortuneMvpPanel: React.FC<Props> = ({ title = '每日詩籤' }) => {
-    const [name, setName] = useState('');
-    const [history, setHistory] = useState<string[]>([]);
+export const FortuneMvpPanel: React.FC = () => {
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [result, setResult] = useState<FortuneResult | null>(null);
 
-    const handleGenerate = () => {
-        const randomIndex = Math.floor(Math.random() * DEFAULT_FORTUNES.length);
-        const base = DEFAULT_FORTUNES[randomIndex];
-        const fortune = name.trim() ? `${name.trim()}，${base}` : base;
-        setHistory((h) => [fortune, ...h].slice(0, 10));
+    const handleDraw = () => {
+        setIsDrawing(true);
+        // 模擬「抽籤中」的動畫儀式感 (1.5秒)
+        setTimeout(() => {
+            const random = POOL[Math.floor(Math.random() * POOL.length)];
+            setResult({
+                ...random,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            setIsDrawing(false);
+        }, 1500);
     };
 
-    const handleClear = () => setHistory([]);
-
     return (
-        <div style={{ 
-            border: '1px solid #ddd', 
-            padding: '20px', 
-            borderRadius: '12px', 
-            maxWidth: '420px', 
-            background: '#ffffff',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            color: '#333'
+        <div style={{
+            background: '#FFFFFF',
+            borderRadius: '24px',
+            padding: '24px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+            maxWidth: '100%',
+            margin: '16px auto',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
         }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.2rem', fontWeight: 'bold' }}>{title}</h3>
-            
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                <input
-                    aria-label="name"
-                    placeholder="輸入名稱"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    style={{ 
-                        flex: 1, 
-                        padding: '10px', 
-                        borderRadius: '6px', 
-                        border: '1px solid #ccc',
-                        fontSize: '14px',
-                        color: '#000'
-                    }}
-                />
-                <button 
-                    onClick={handleGenerate}
-                    style={{ 
-                        padding: '10px 16px', 
-                        background: '#000', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: '600'
-                    }}
-                >
-                    抽取
-                </button>
-                <button 
-                    onClick={handleClear}
-                    style={{ 
-                        padding: '10px 16px', 
-                        background: '#eee', 
-                        color: '#666', 
-                        border: 'none', 
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    清除
-                </button>
+            {/* 標題與視覺 */}
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                <div style={{ fontSize: '40px', marginBottom: '8px' }}>🔮</div>
+                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1A1A1A', margin: 0 }}>每日詩籤</h2>
+                <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>探索今日的宇宙能量</p>
             </div>
 
-            <div style={{ borderTop: '1px solid #eee', paddingTop: '12px' }}>
-                {history.length === 0 ? (
-                    <div style={{ color: '#999', textAlign: 'center', padding: '10px 0' }}>
-                        尚未抽取今日詩籤
+            {/* 結果展示區 */}
+            <div style={{
+                minHeight: '160px',
+                background: '#F8F9FA',
+                borderRadius: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px',
+                marginBottom: '20px',
+                border: '1px dashed #E0E0E0'
+            }}>
+                {isDrawing ? (
+                    <div style={{ textAlign: 'center' }}>
+                        <div className="animate-spin" style={{ fontSize: '24px' }}>⏳</div>
+                        <p style={{ color: '#0070F3', fontWeight: '600', marginTop: '8px' }}>正在窺探天機...</p>
+                    </div>
+                ) : result ? (
+                    <div style={{ textAlign: 'center', animation: 'fadeIn 0.5s ease-in' }}>
+                        <div style={{ fontSize: '22px', fontWeight: '800', color: '#0070F3', marginBottom: '8px' }}>{result.text}</div>
+                        <div style={{ fontSize: '15px', color: '#444', lineHeight: '1.6' }}>{result.advice}</div>
+                        <div style={{ fontSize: '11px', color: '#999', marginTop: '12px' }}>抽取時間：{result.timestamp}</div>
                     </div>
                 ) : (
-                    <ul style={{ paddingLeft: '20px', margin: 0 }}>
-                        {history.map((f, idx) => (
-                            <li key={idx} style={{ marginBottom: '8px', color: idx === 0 ? '#000' : '#666', fontWeight: idx === 0 ? '600' : 'normal' }}>
-                                {f}
-                            </li>
-                        ))}
-                    </ul>
+                    <p style={{ color: '#999' }}>點擊下方按鈕，抽取今日運勢</p>
                 )}
             </div>
+
+            {/* 交互按鈕 */}
+            <button
+                onClick={handleDraw}
+                disabled={isDrawing}
+                style={{
+                    width: '100%',
+                    padding: '16px',
+                    background: isDrawing ? '#CCC' : '#000',
+                    color: '#FFF',
+                    border: 'none',
+                    borderRadius: '14px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: isDrawing ? 'not-allowed' : 'pointer',
+                    transition: 'transform 0.1s active',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+            >
+                {isDrawing ? '感應中...' : '立即抽取今日詩籤'}
+            </button>
+
+            {/* 合規免責聲明 */}
+            <p style={{
+                fontSize: '11px',
+                color: '#BBB',
+                textAlign: 'center',
+                marginTop: '20px',
+                lineHeight: '1.4'
+            }}>
+                免責聲明：本內容僅供娛樂參考，不構成任何醫療、法律或投資建議。
+            </p>
         </div>
     );
 };

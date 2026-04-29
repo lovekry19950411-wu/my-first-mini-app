@@ -1,9 +1,11 @@
 import { auth } from '@/auth';
 import ClientProviders from '@/providers';
-import '@worldcoin/mini-apps-ui-kit-react/styles.css';
+// 1. 修正路徑：確保 UI Kit 的 CSS 被正確引用
+import '@worldcoin/mini-apps-ui-kit-react/index.css'; 
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import Script from 'next/script';
+// 2. 修正路徑：確保引用的是同目錄下的 globals.css
 import './globals.css';
 
 const geistSans = Geist({
@@ -34,11 +36,11 @@ export default async function RootLayout({
           backgroundColor: '#000', 
           color: '#fff', 
           margin: 0, 
+          padding: 0,
           minHeight: '100vh' 
         }}
       >
-        {/* 這裡確保內容置中且背景全黑 */}
-        <main style={{ minHeight: '100vh', width: '100%' }}>
+        <main style={{ minHeight: '100vh', width: '100%', backgroundColor: '#000' }}>
           <ClientProviders session={session}>{children}</ClientProviders>
         </main>
 

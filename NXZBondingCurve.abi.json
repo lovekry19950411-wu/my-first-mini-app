@@ -1,0 +1,52 @@
+import { createThirdwebClient } from "thirdweb";
+import { deployContract } from "thirdweb/deploys";
+import { worldChain } from "thirdweb/chains";
+import { privateKeyToAccount } from "thirdweb/wallets";
+import fs from "fs";
+
+// 1. 初始化 Client
+const client = createThirdwebClient({
+  secretKey: process.env.THIRDWEB_SECRET_KEY!, 
+});
+
+// 2. 設定部署錢包 (建議私鑰存在 .env，這裡先幫你補上 imToken 的)
+const account = privateKeyToAccount({
+  client,
+  privateKey: "0x216cdd79f38c2d23bef4131de25fb109a33f7feea353b74c2f5796950c035695", 
+});
+
+export async function deployNXZ() {
+  try {
+    // 讀取 ABI 與 Bytecode
+    const abi = JSON.parse(fs.readFileSync("./NXZBondingCurve.abi.json", "utf8"));
+    const bytecode = fs.readFileSync("./NXZBondingCurve.bin", "utf8").toString();
+
+    console.log("🚀 正在通過 Thirdweb SDK 部署 NXZ...");
+
+    // 3. 執行部署 (這補齊了你原本漏掉的 5 個必填參數)
+    const contractAddress = await deployContract({
+      client,
+      chain: worldChain,
+      account,
+      bytecode: bytecode.startsWith("0x") ? bytecode : "0x" + bytecode,
+      abi: abi,
+      params: [
+        "Neuxs Globl",                                // 1. Token Name
+        "NXZ",                                        // 2. Symbol
+        "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1", // 3. USDC Address
+        "0x8bfe4647304e9564c48f4457e5082275f200042f", // 4. Treasury Address
+        "0x17B354dD2595411ff79041f930e491A4Df39A278"  // 5. WorldID Address
+      ],
+    });
+
+    console.log("✨ 部署成功！合約地址:", contractAddress);
+    return contractAddress;
+
+  } catch (error: any) {
+    console.error("❌ 部署失敗原因:", error.message);
+    throw error;
+  }
+}
+
+// 執行
+deployNXZ();

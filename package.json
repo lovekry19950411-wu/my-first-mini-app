@@ -1,0 +1,44 @@
+{
+  "name": "@worldcoin/next-15-template",
+  "version": "0.1.0",
+  "homepage": "https://docs.worldcoin.org/mini-apps",
+  "description": "Create a Mini App",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "prettier --check . --ignore-path ../../.prettierignore"
+  },
+  "dependencies": {
+    "@worldcoin/idkit": "^4.1.4",
+    "@worldcoin/mini-apps-ui-kit-react": "^1.0.2",
+    "@worldcoin/minikit-js": "^2.0.3",
+    "@worldcoin/minikit-react": "latest",
+    "clsx": "^2.1.1",
+    "ethers": "^6.16.0",
+    "iconoir-react": "^7.11.0",
+    "lucide-react": "^1.14.0",
+    "next": "^16.2.4",
+    "next-auth": "5.0.0-beta.25",
+    "openai": "^6.35.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tailwind-merge": "^3.2.0",
+    "viem": "2.45.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eruda": "^3.4.1",
+    "eslint": "^9",
+    "eslint-config-next": "15.0.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

@@ -1,14 +1,28 @@
 "use client";
 import { useState, useEffect } from "react";
-import { MiniKit, tokenToDecimals, PayCommandInput } from "@worldcoin/minikit-js";
+import { MiniKit, PayCommandInput } from "@worldcoin/minikit-js";
 import { NXZ_CONFIG } from "@/consts/config";
 import dynamic from 'next/dynamic';
 
-// 徹底解決 SSR 衝突，並強制禁用 Hydration Warning
+// 強力修正：處理 @worldcoin/idkit 可能的所有匯出情況
 const IDKitWidget = dynamic(
-  () => import('@worldcoin/idkit').then((mod) => mod.IDKitWidget),
-  { ssr: false }
+  () => import('@worldcoin/idkit').then((mod) => {
+    // 檢查各種可能的導出方式，防止 undefined
+    if (mod.IDKitWidget) return mod.IDKitWidget;
+    if (mod.default && (mod.default as any).IDKitWidget) return (mod.default as any).IDKitWidget;
+    if (mod.default) return mod.default;
+    return () => <div className="text-red-500">IDKit 加載失敗，請重啟伺服器</div>;
+  }),
+  { 
+    ssr: false,
+    loading: () => <div className="text-gray-500">初始化驗證組件...</div>
+  }
 );
+
+// 手動轉換 WLD 單位
+const toDecimals = (amount: number, decimals: number = 18) => {
+  return (BigInt(amount) * BigInt(10) ** BigInt(decimals)).toString();
+};
 
 export default function NXZLaunchpad() {
   const [mounted, setMounted] = useState(false);
@@ -17,7 +31,6 @@ export default function NXZLaunchpad() {
 
   useEffect(() => { 
     setMounted(true);
-    // 初始化 MiniKit 確保指令可用
     if (typeof window !== "undefined") {
       MiniKit.install();
     }
@@ -38,12 +51,12 @@ export default function NXZLaunchpad() {
     try {
       const payPayload: PayCommandInput = {
         reference: `NXZ_ELITE_${Date.now()}`,
-        to: NXZ_CONFIG.TREASURY_ADDRESS, // 指向 imToken 冷錢包: 0x4430...8151
+        to: NXZ_CONFIG.TREASURY_ADDRESS, 
         tokens: [{ 
           symbol: "WLD", 
-          amount: tokenToDecimals(5, "WLD").toString() 
+          amount: toDecimals(5) 
         }],
-        description: "NXZ 先鋒精英蛋選拔規費",
+        description: "NXZ 先鋒精英選拔規費",
       };
 
       const response = await MiniKit.commandsAsync.pay(payPayload);
@@ -66,7 +79,6 @@ export default function NXZLaunchpad() {
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 font-sans antialiased">
-      {/* 核心 UI */}
       <div className="max-w-md w-full text-center space-y-8">
         <div className="space-y-2">
           <h1 className="text-5xl font-black text-yellow-500 tracking-tighter uppercase italic">
@@ -118,7 +130,6 @@ export default function NXZLaunchpad() {
         )}
       </div>
 
-      {/* 底部裝飾 */}
       <footer className="absolute bottom-8 text-[10px] text-zinc-700 tracking-[0.2em] uppercase">
         Next-Gen Human Verification Protocol // 2026 NXZ
       </footer>

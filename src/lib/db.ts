@@ -1,31 +1,22 @@
-import { Pool, type QueryResult, type QueryResultRow } from 'pg';
+import { Pool } from "pg";
 
-const globalForDb = globalThis as unknown as { pool?: Pool };
+let pool: Pool;
 
-export const hasDatabase = Boolean(process.env.DATABASE_URL);
-
-export const db = (() => {
-  if (!hasDatabase) {
-    return null;
-  }
-
-  if (!globalForDb.pool) {
-    globalForDb.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
+export function getPool(): Pool {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.POSTGRES_URL ?? process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
     });
   }
+  return pool;
+}
 
-  return globalForDb.pool;
-})();
-
-export async function queryDb<T extends QueryResultRow = QueryResultRow>(
-  text: string,
-  params: unknown[] = [],
-): Promise<QueryResult<T>> {
-  if (!db) {
-    throw new Error('DATABASE_URL is not configured');
+export async function query(text: string, params: any[]) {
+  const client = await getPool().connect();
+  try {
+    return await client.query(text, params);
+  } finally {
+    client.release();
   }
-
-  return db.query<T>(text, params);
 }

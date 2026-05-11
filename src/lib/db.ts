@@ -15,7 +15,7 @@ export function getPool(): Pool {
 }
 
 export async function query(text: string, params: any[]) {
-  if (!hasDatabase) return { rows: [] };
+  if (!hasDatabase) return { rows: [], rowCount: 0 };
   const client = await getPool().connect();
   try {
     return await client.query(text, params);

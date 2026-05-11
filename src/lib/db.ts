@@ -1,6 +1,8 @@
 import { Pool } from "pg";
 
-let pool: Pool;
+let pool: Pool | null = null;
+
+export const hasDatabase = !!(process.env.POSTGRES_URL ?? process.env.DATABASE_URL);
 
 export function getPool(): Pool {
   if (!pool) {
@@ -13,10 +15,15 @@ export function getPool(): Pool {
 }
 
 export async function query(text: string, params: any[]) {
+  if (!hasDatabase) return { rows: [] };
   const client = await getPool().connect();
   try {
     return await client.query(text, params);
   } finally {
     client.release();
   }
+}
+
+export async function queryDb(text: string, params: any[]) {
+  return query(text, params);
 }

@@ -1,72 +1,41 @@
-'use client';
-import { walletAuth } from '@/auth/wallet';
-import { Button, LiveFeedback } from '@worldcoin/mini-apps-ui-kit-react';
-import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
-import { useCallback, useEffect, useRef, useState } from 'react';
+"use client";
+import { walletAuth } from "@/auth/wallet";
+import { Button, LiveFeedback } from "@worldcoin/mini-apps-ui-kit-react";
+import { useMiniKit } from "@worldcoin/minikit-js/minikit-provider";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-/**
- * This component is an example of how to authenticate a user
- * We will use Next Auth for this example, but you can use any auth provider
- * Read More: https://docs.world.org/mini-apps/commands/wallet-auth
- */
-export const AuthButton = () => {
-  console.log('AuthButton render');
+export const AuthButton = ({ onSuccess }: { onSuccess?: () => void }) => {
   const [isPending, setIsPending] = useState(false);
   const { isInstalled } = useMiniKit();
   const hasAttemptedAuth = useRef(false);
 
-  console.log('AuthButton state:', { isPending, isInstalled });
-
-  const onClick = useCallback(async () => {
-    if (!isInstalled || isPending) {
-      return;
-    }
+  const doAuth = useCallback(async () => {
+    if (!isInstalled || isPending) return;
     setIsPending(true);
     try {
       await walletAuth();
+      onSuccess?.();
     } catch (error) {
-      console.error('Wallet authentication button error', error);
+      console.error("Wallet auth error", error);
     } finally {
       setIsPending(false);
     }
-  }, [isInstalled, isPending]);
+  }, [isInstalled, isPending, onSuccess]);
 
-  // Auto-authenticate on load when MiniKit is ready
   useEffect(() => {
-    console.log('AuthButton effect:', {
-      isInstalled,
-      hasAttemptedAuth: hasAttemptedAuth.current,
-    });
     if (isInstalled === true && !hasAttemptedAuth.current) {
-      console.log('Firing walletAuth automatically');
       hasAttemptedAuth.current = true;
-      setIsPending(true);
-      walletAuth()
-        .catch((error) => {
-          console.error('Auto wallet authentication error', error);
-        })
-        .finally(() => {
-          setIsPending(false);
-        });
+      doAuth();
     }
-  }, [isInstalled]);
+  }, [isInstalled, doAuth]);
 
   return (
     <LiveFeedback
-      label={{
-        failed: 'Failed to login',
-        pending: 'Logging in',
-        success: 'Logged in',
-      }}
-      state={isPending ? 'pending' : undefined}
+      label={{ failed: "登入失敗", pending: "登入中...", success: "已登入" }}
+      state={isPending ? "pending" : undefined}
     >
-      <Button
-        onClick={onClick}
-        disabled={isPending}
-        size="lg"
-        variant="primary"
-      >
-        Login with Wallet
+      <Button onClick={doAuth} disabled={isPending} size="lg" variant="primary">
+        用 World App 登入
       </Button>
     </LiveFeedback>
   );

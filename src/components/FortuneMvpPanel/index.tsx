@@ -1,5 +1,7 @@
 "use client";
 
-export function FortuneMvpPanel() {
+export default function FortuneMvpPanel() {
   return null;
 }
+
+export { FortuneMvpPanel };

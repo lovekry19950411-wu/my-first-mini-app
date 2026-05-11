@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { query } from "@/lib/db";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -11,6 +8,13 @@ export async function POST(req: NextRequest) {
 
   const { platform, contentType, topic } = await req.json();
 
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
+  }
+
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+  const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `你是一位頂級社群媒體文案專家。
@@ -33,14 +37,12 @@ export async function POST(req: NextRequest) {
     const result = await model.generateContent(prompt);
     const content = result.response.text();
 
-    // 儲存到資料庫並給積分
     await query(
-      `INSERT INTO content_library (user_id, platform, content_type, topic, content) 
+      `INSERT INTO content_library (user_id, platform, content_type, topic, content)
        VALUES ($1, $2, $3, $4, $5)`,
       [session.user.id, platform, contentType, topic, content]
-    ).catch(() => {}); // 若 DB 還沒設定不影響主功能
+    ).catch(() => {});
 
-    // 加積分
     await query(
       `INSERT INTO user_points (user_id, points, action) VALUES ($1, 10, 'generate')
        ON CONFLICT (user_id) DO UPDATE SET points = user_points.points + 10`,

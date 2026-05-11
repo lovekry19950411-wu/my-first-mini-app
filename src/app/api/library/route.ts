@@ -1,19 +1,13 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { query } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ items: [] });
-
+export async function GET(req: NextRequest) {
+  const wallet = req.nextUrl.searchParams.get("wallet") ?? "";
+  if (!wallet) return NextResponse.json({ items: [] });
   try {
+    const { query } = await import("@/lib/db");
     const result = await query(
-      `SELECT id, platform, content_type as "contentType", topic, content, created_at as "createdAt"
-       FROM content_library
-       WHERE user_id = $1
-       ORDER BY created_at DESC
-       LIMIT 50`,
-      [session.user.id]
+      "SELECT id, platform, content_type, topic, content, created_at FROM content_library WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50",
+      [wallet]
     );
     return NextResponse.json({ items: result.rows });
   } catch {

@@ -1,4 +1,3 @@
-import { auth } from '@/auth';
 import ClientProviders from '@/providers';
 import '@worldcoin/mini-apps-ui-kit-react/styles.css';
 import type { Metadata } from 'next';
@@ -13,12 +12,11 @@ export const metadata: Metadata = {
   description: '一鍵生成爆款文案，World ID 驗證，WLD 積分獎勵',
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const session = await auth();
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-TW">
       <body className={`${geistSans.variable} ${geistMono.variable} bg-black`}>
-        <ClientProviders session={session}>{children}</ClientProviders>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

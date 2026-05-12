@@ -1,57 +1,84 @@
 "use client";
 import { MiniKit } from "@worldcoin/minikit-js";
 import { useMiniKit } from "@worldcoin/minikit-js/minikit-provider";
-import { AuthButton } from "@/components/AuthButton";
+import { walletAuth } from "@/auth/wallet";
 import { TabBar } from "@/components/TabBar";
 import { GeneratePage } from "@/components/GeneratePage";
 import { LeaderboardPage } from "@/components/LeaderboardPage";
 import { LibraryPage } from "@/components/LibraryPage";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function Home() {
   const { isInstalled } = useMiniKit();
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [authPending, setAuthPending] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
-  const [authed, setAuthed] = useState(false);
+  const attempted = useRef(false);
 
-  // 在 World App 內自動視為已登入，在瀏覽器顯示登入按鈕
-  const isLoggedIn = authed || (isInstalled && !!MiniKit.user?.walletAddress);
+  const doAuth = useCallback(async () => {
+    if (authPending || attempted.current) return;
+    attempted.current = true;
+    setAuthPending(true);
+    try {
+      const address = await walletAuth();
+      setWalletAddress(address);
+    } catch (e) {
+      console.error("Auth failed", e);
+      // 若在瀏覽器測試，直接用 MiniKit 快取的地址
+      if (MiniKit.user?.walletAddress) setWalletAddress(MiniKit.user.walletAddress);
+    } finally {
+      setAuthPending(false);
+    }
+  }, [authPending]);
 
-  if (!isLoggedIn) {
+  useEffect(() => {
+    if (isInstalled) doAuth();
+  }, [isInstalled]);
+
+  if (!walletAddress) {
     return (
       <main className="flex flex-col items-center justify-center min-h-[100dvh] bg-black p-6 gap-8">
         <div className="text-center space-y-3">
-          <div className="text-5xl">🤖</div>
+          <div className="text-6xl">🤖</div>
           <h1 className="text-2xl font-bold text-white">AI 內容工廠</h1>
           <p className="text-gray-400 text-sm">一鍵生成爆款文案・積分・排行</p>
         </div>
-        <AuthButton onSuccess={() => setAuthed(true)} />
-        <p className="text-xs text-gray-600">需要 World ID 真人驗證才能使用</p>
+        {authPending ? (
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400 text-sm">驗證中...</p>
+          </div>
+        ) : (
+          <button onClick={doAuth}
+            className="bg-purple-600 text-white font-bold px-8 py-4 rounded-2xl text-base w-full max-w-xs">
+            用 World App 登入
+          </button>
+        )}
       </main>
     );
   }
 
-  const user = MiniKit.user;
-
   return (
     <main className="flex flex-col min-h-[100dvh] bg-black overflow-hidden">
-      <div className="flex-1 overflow-y-auto pb-16">
-        {activeTab === "home" && <HomePage user={user} />}
-        {activeTab === "generate" && <GeneratePage />}
+      <div className="flex-1 overflow-y-auto pb-20">
+        {activeTab === "home" && <HomePage walletAddress={walletAddress} />}
+        {activeTab === "generate" && <GeneratePage walletAddress={walletAddress} />}
         {activeTab === "leaderboard" && <LeaderboardPage />}
-        {activeTab === "library" && <LibraryPage />}
+        {activeTab === "library" && <LibraryPage walletAddress={walletAddress} />}
       </div>
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
     </main>
   );
 }
 
-function HomePage({ user }: { user: any }) {
+function HomePage({ walletAddress }: { walletAddress: string }) {
+  const short = walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4);
   return (
     <div className="p-4 space-y-4">
       <div className="bg-gradient-to-r from-purple-900 to-blue-900 rounded-2xl p-4 flex items-center justify-between">
         <div>
-          <p className="text-gray-300 text-xs">歡迎回來</p>
-          <p className="text-white font-bold text-lg">{user?.username ?? "創作者"}</p>
+          <p className="text-gray-300 text-xs">已登入</p>
+          <p className="text-white font-bold">{MiniKit.user?.username ?? short}</p>
         </div>
         <div className="text-right">
           <p className="text-yellow-400 font-bold text-xl">⭐ 0</p>

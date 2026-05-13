@@ -17,7 +17,7 @@ export default function ClientProviders({
     // 官方 MiniKit 只需要這一行來啟動與 World App 的連結
     if (typeof window !== 'undefined') {
       MiniKit.install();
-      console.log("MiniKit 已經針對 Mindsync 完成初始化");
+      console.log('MiniKit 已初始化（World 迷你應用）');
     }
   }, []);
 

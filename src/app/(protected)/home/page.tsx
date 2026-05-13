@@ -15,11 +15,13 @@ export default async function Home() {
     <>
       <Page.Header className="p-0">
         <TopBar
-          title="Home"
+          title="主控制台"
           endAdornment={
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold capitalize">
-                {session?.user.username}
+                {session?.user.username?.trim()
+                  ? session.user.username
+                  : '未設定暱稱'}
               </p>
               <Marble src={session?.user.profilePictureUrl} className="w-12" />
             </div>

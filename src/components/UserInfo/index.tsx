@@ -14,12 +14,17 @@ export const UserInfo = () => {
   const session = useSession();
 
   return (
-    <div className="flex flex-row items-center justify-start gap-4 rounded-xl w-full border-2 border-gray-200 p-4">
+    <div className="flex w-full flex-row items-center justify-start gap-4 rounded-xl border-2 border-gray-200 p-4">
       <Marble src={session?.data?.user?.profilePictureUrl} className="w-14" />
       <div className="flex flex-row items-center justify-center">
-        <span className="text-lg font-semibold capitalize">
-          {session?.data?.user?.username}
-        </span>
+        <div className="flex flex-col items-start gap-0.5">
+          <span className="text-xs font-medium text-gray-500">目前帳號</span>
+          <span className="text-lg font-semibold capitalize">
+            {session?.data?.user?.username?.trim()
+              ? session.data.user.username
+              : '（尚未設定暱稱）'}
+          </span>
+        </div>
         {session?.data?.user?.profilePictureUrl && (
           <CircularIcon size="sm" className="ml-0">
             <CheckCircleSolid className="text-blue-600" />

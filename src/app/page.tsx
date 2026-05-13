@@ -1,5 +1,6 @@
 'use client';
 
+import { AuthButton } from '@/components/AuthButton';
 import { NXZ_CONFIG } from '@/consts/config';
 import { MiniKit } from '@worldcoin/minikit-js';
 import {
@@ -8,6 +9,7 @@ import {
   type PayCommandInput,
 } from '@worldcoin/minikit-js/commands';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 const IDKitWidget = dynamic(
@@ -69,10 +71,12 @@ export default function NXZAssetCommandCenter() {
         alert('恭喜！精英模式已啟動，您的身分已錄入 NXZ 人才池。');
       } else {
         setStatus('error');
+        alert('支付未完成或已取消，請稍後再試。');
       }
     } catch (e) {
       console.error('支付失敗', e);
       setStatus('error');
+      alert('支付過程發生錯誤，請確認網路後再試。');
     }
   };
 
@@ -81,12 +85,31 @@ export default function NXZAssetCommandCenter() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-black p-6 font-sans text-white antialiased">
       <div className="max-w-md w-full space-y-8 text-center">
+        <div className="rounded-3xl border border-zinc-700 bg-zinc-900/40 p-6 text-left space-y-4">
+          <p className="text-sm font-semibold text-yellow-400">步驟一 · 錢包登入</p>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            請在 <strong className="text-gray-200">World App</strong>{' '}
+            內開啟本頁。登入成功後可到「主控制台」使用完整官方範例（驗證、支付、交易）。
+          </p>
+          <div className="flex justify-center">
+            <AuthButton />
+          </div>
+          <div className="text-center text-sm">
+            <Link
+              href="/home"
+              className="text-yellow-400 underline underline-offset-4 hover:text-yellow-300"
+            >
+              前往主控制台（需先完成錢包登入）
+            </Link>
+          </div>
+        </div>
+
         <div className="space-y-2">
           <h1 className="text-5xl font-black tracking-tighter text-yellow-500 uppercase italic">
-            NXZ <span className="text-white">Center</span>
+            NXZ <span className="text-white">控制中心</span>
           </h1>
-          <p className="text-gray-400 text-sm uppercase tracking-widest">
-            Asset Command · 真人精英選拔
+          <p className="text-gray-400 text-sm tracking-wide">
+            資產指令 · 真人驗證與方案支付
           </p>
         </div>
 
@@ -145,8 +168,8 @@ export default function NXZAssetCommandCenter() {
         )}
       </div>
 
-      <footer className="absolute bottom-8 text-[10px] tracking-[0.2em] text-zinc-700 uppercase">
-        NXZ Asset Command Center // 2026
+      <footer className="absolute bottom-8 max-w-md px-4 text-center text-[10px] tracking-wide text-zinc-600">
+        NXZ 資產控制中心 · 2026 · World 迷你應用
       </footer>
     </main>
   );

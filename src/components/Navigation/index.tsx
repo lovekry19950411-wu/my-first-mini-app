@@ -16,10 +16,10 @@ export const Navigation = () => {
 
   return (
     <Tabs value={value} onValueChange={setValue}>
-      <TabItem value="home" icon={<Home />} label="Home" />
-      {/* // TODO: These currently don't link anywhere */}
-      <TabItem value="wallet" icon={<Bank />} label="Wallet" />
-      <TabItem value="profile" icon={<User />} label="Profile" />
+      <TabItem value="home" icon={<Home />} label="首頁" />
+      {/* TODO: 分頁路由尚未接上，僅為介面預留 */}
+      <TabItem value="wallet" icon={<Bank />} label="錢包" />
+      <TabItem value="profile" icon={<User />} label="個人" />
     </Tabs>
   );
 };

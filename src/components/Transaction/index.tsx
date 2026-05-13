@@ -135,12 +135,15 @@ export const Transaction = () => {
 
   return (
     <div className="grid w-full gap-4">
-      <p className="text-lg font-semibold">Transaction</p>
+      <p className="text-lg font-semibold">鏈上交易（範例）</p>
+      <p className="text-sm text-gray-500">
+        官方範例合約：鑄造測試代幣後，可再轉帳給指定使用者。
+      </p>
       <LiveFeedback
         label={{
-          failed: 'Transaction failed',
-          pending: 'Transaction pending',
-          success: 'Transaction successful',
+          failed: '交易失敗',
+          pending: '交易處理中…',
+          success: '交易成功',
         }}
         state={whichButton === 'getToken' ? buttonState : undefined}
         className="w-full"
@@ -152,14 +155,14 @@ export const Transaction = () => {
           variant="primary"
           className="w-full"
         >
-          Get Token
+          鑄造測試代幣
         </Button>
       </LiveFeedback>
       <LiveFeedback
         label={{
-          failed: 'Transaction failed',
-          pending: 'Transaction pending',
-          success: 'Transaction successful',
+          failed: '交易失敗',
+          pending: '交易處理中…',
+          success: '交易成功',
         }}
         state={whichButton === 'transferToken' ? buttonState : undefined}
         className="w-full"
@@ -171,7 +174,7 @@ export const Transaction = () => {
           variant="tertiary"
           className="w-full"
         >
-          Transfer Token
+          轉帳測試代幣
         </Button>
       </LiveFeedback>
     </div>

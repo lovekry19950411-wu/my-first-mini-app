@@ -3,8 +3,8 @@ import { auth } from '@/auth';
 import './globals.css';
 
 export const metadata = {
-  title: 'NXZ Asset Command Center',
-  description: 'World ID · MiniKit · NXZ',
+  title: 'NXZ · World 迷你應用',
+  description: 'World ID、MiniKit 錢包登入與支付範例',
 };
 
 export default async function RootLayout({

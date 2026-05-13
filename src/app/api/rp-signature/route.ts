@@ -9,7 +9,7 @@ const RP_ID = process.env.RP_ID ?? 'rp_e87d44dbb7b76d91';
 export async function POST(req: Request) {
   if (!SIGNING_KEY) {
     return NextResponse.json(
-      { error: 'RP_SIGNING_KEY not configured' },
+      { error: '尚未設定 RP_SIGNING_KEY，請在 .env 設定後重試。' },
       { status: 500 },
     );
   }

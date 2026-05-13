@@ -25,7 +25,7 @@ export const Verify = ({ action }: { action: string }) => {
       });
 
       if (!rpRes.ok) {
-        throw new Error('Failed to get RP signature');
+        throw new Error('無法取得伺服器簽章');
       }
 
       const rpSig = await rpRes.json();
@@ -78,12 +78,15 @@ export const Verify = ({ action }: { action: string }) => {
 
   return (
     <div className="grid w-full gap-4">
-      <p className="text-lg font-semibold">Verify</p>
+      <p className="text-lg font-semibold">World ID 真人驗證</p>
+      <p className="text-sm text-gray-500">
+        使用官方 IDKit 流程，證明會在伺服器端再次確認。
+      </p>
       <LiveFeedback
         label={{
-          failed: 'Failed to verify',
-          pending: 'Verifying',
-          success: 'Verified',
+          failed: '驗證失敗',
+          pending: '驗證中…',
+          success: '已驗證',
         }}
         state={buttonState}
         className="w-full"
@@ -95,7 +98,7 @@ export const Verify = ({ action }: { action: string }) => {
           variant="primary"
           className="w-full"
         >
-          Verify with World ID
+          使用 World ID 驗證
         </Button>
       </LiveFeedback>
     </div>

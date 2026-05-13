@@ -45,7 +45,7 @@ export const Pay = () => {
             token_amount: String(tokenToDecimals(0.1, Tokens.USDC)),
           },
         ],
-        description: 'Test example payment for minikit',
+        description: 'Mini App 支付功能示範',
       });
 
       if (
@@ -72,12 +72,15 @@ export const Pay = () => {
 
   return (
     <div className="grid w-full gap-4">
-      <p className="text-lg font-semibold">Pay</p>
+      <p className="text-lg font-semibold">MiniKit 支付（範例）</p>
+      <p className="text-sm text-gray-500">
+        示範 WLD／USDC 支付流程，實際上線前請改為你的收款地址與金額。
+      </p>
       <LiveFeedback
         label={{
-          failed: 'Payment failed',
-          pending: 'Payment pending',
-          success: 'Payment successful',
+          failed: '支付失敗',
+          pending: '支付處理中…',
+          success: '支付成功',
         }}
         state={buttonState}
         className="w-full"
@@ -89,7 +92,7 @@ export const Pay = () => {
           variant="primary"
           className="w-full"
         >
-          Pay
+          立即支付
         </Button>
       </LiveFeedback>
     </div>

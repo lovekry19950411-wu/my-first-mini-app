@@ -1,3 +1,4 @@
+$code = @"
 "use client";
 import { MiniKit } from "@worldcoin/minikit-js";
 import { useMiniKit } from "@worldcoin/minikit-js/minikit-provider";
@@ -22,9 +23,9 @@ export default function Home() {
 
     try {
       const { finalPayload } = await MiniKit.commands.verify({
-        action: "login-verify",
-        signal: "user_" + Math.random().toString(36).substring(7),
-        verification_level: "Orb",
+        action: process.env.NEXT_PUBLIC_ACTION || "daily-fortune-draw",
+        signal: "user_session",
+        verification_level: "Orb", 
       });
 
       if (finalPayload.status === "success") {
@@ -32,7 +33,7 @@ export default function Home() {
         setIsVerified(true);
       }
     } catch (e) {
-      console.error(e);
+      console.error("驗證失敗:", e);
     } finally {
       setAuthPending(false);
     }
@@ -48,19 +49,12 @@ export default function Home() {
         <div className="text-center space-y-3">
           <div className="text-6xl">🤖</div>
           <h1 className="text-2xl font-bold text-white">AI 內容工廠</h1>
-          <p className="text-gray-400 text-sm">只有 World ID 真人可進入</p>
+          <p className="text-gray-400 text-sm">請完成 World ID 真人驗證</p>
         </div>
-        {authPending ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-400 text-sm">正在等待虹膜掃描結果...</p>
-          </div>
-        ) : (
-          <button onClick={doVerify}
-            className="bg-purple-600 text-white font-bold px-8 py-4 rounded-2xl text-base w-full max-w-xs">
-            透過 World ID 真人驗證
-          </button>
-        )}
+        <button onClick={doVerify} disabled={authPending}
+          className="bg-purple-600 text-white font-bold px-8 py-4 rounded-2xl text-base w-full max-w-xs transition-opacity active:opacity-70">
+          {authPending ? "正在開啟 World App..." : "點擊開始真人驗證"}
+        </button>
       </main>
     );
   }
@@ -82,28 +76,20 @@ function HomePage({ walletAddress }: { walletAddress: string }) {
   const short = walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4);
   return (
     <div className="p-4 space-y-4">
-      <div className="bg-gradient-to-r from-purple-900 to-blue-900 rounded-2xl p-4 flex items-center justify-between">
-        <div>
-          <p className="text-gray-300 text-xs">真人身分已確認</p>
-          <p className="text-white font-bold">{MiniKit.user?.username ?? short}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-yellow-400 font-bold text-xl">⭐ 0</p>
-          <p className="text-gray-400 text-xs">積分</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { icon: "✨", title: "今日生成", sub: "+10 積分/次", color: "text-purple-400" },
-          { icon: "🏆", title: "週榜獎勵", sub: "WLD 獎勵", color: "text-yellow-400" },
-        ].map(item => (
-          <div key={item.title} className="bg-gray-900 rounded-xl p-4 text-center">
-            <div className="text-2xl mb-1">{item.icon}</div>
-            <p className="text-white text-sm font-medium">{item.title}</p>
-            <p className={`${item.color} text-xs mt-1`}>{item.sub}</p>
+      <div className="bg-gradient-to-r from-purple-900 to-blue-900 rounded-2xl p-5 border border-purple-500/30">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-purple-300 text-xs font-semibold tracking-wider uppercase">Verified Citizen</p>
+            <p className="text-white font-bold text-lg leading-tight">{MiniKit.user?.username ?? short}</p>
           </div>
-        ))}
+          <div className="bg-black/30 backdrop-blur-md rounded-xl p-2 text-center min-w-[70px] border border-white/10">
+            <p className="text-yellow-400 font-black text-xl">⭐ 0</p>
+            <p className="text-gray-400 text-[10px] uppercase">Points</p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+"@
+$code | Out-File -FilePath "src/app/page.tsx" -Encoding utf8

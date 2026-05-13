@@ -13,9 +13,11 @@ export const Verify = ({ action }: { action: string }) => {
   const [buttonState, setButtonState] = useState<
     'pending' | 'success' | 'failed' | undefined
   >(undefined);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const onClickVerify = async () => {
     setButtonState('pending');
+    setErrorMessage(null);
     try {
       // Fetch RP signature from your backend
       const rpRes = await fetch('/api/rp-signature', {
@@ -25,7 +27,14 @@ export const Verify = ({ action }: { action: string }) => {
       });
 
       if (!rpRes.ok) {
-        throw new Error('無法取得伺服器簽章');
+        let msg = '無法取得伺服器簽章';
+        try {
+          const data = await rpRes.json();
+          if (data?.error && typeof data.error === 'string') msg = data.error;
+        } catch {
+          // ignore
+        }
+        throw new Error(msg);
       }
 
       const rpSig = await rpRes.json();
@@ -68,10 +77,14 @@ export const Verify = ({ action }: { action: string }) => {
         setButtonState('success');
       } else {
         setButtonState('failed');
+        setErrorMessage(
+          typeof data?.error === 'string' ? data.error : '驗證失敗',
+        );
         setTimeout(() => setButtonState(undefined), 2000);
       }
-    } catch {
+    } catch (e) {
       setButtonState('failed');
+      setErrorMessage(e instanceof Error ? e.message : '驗證失敗');
       setTimeout(() => setButtonState(undefined), 2000);
     }
   };
@@ -82,6 +95,9 @@ export const Verify = ({ action }: { action: string }) => {
       <p className="text-sm text-gray-500">
         使用官方 IDKit 流程，證明會在伺服器端再次確認。
       </p>
+      {errorMessage ? (
+        <p className="text-sm text-red-500">{errorMessage}</p>
+      ) : null}
       <LiveFeedback
         label={{
           failed: '驗證失敗',

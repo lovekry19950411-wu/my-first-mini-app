@@ -1,4 +1,3 @@
-$code = @"
 "use client";
 import { MiniKit } from "@worldcoin/minikit-js";
 import { useMiniKit } from "@worldcoin/minikit-js/minikit-provider";
@@ -23,9 +22,9 @@ export default function Home() {
 
     try {
       const { finalPayload } = await MiniKit.commands.verify({
-        action: process.env.NEXT_PUBLIC_ACTION || "daily-fortune-draw",
+        action: "daily-fortune-draw",
         signal: "user_session",
-        verification_level: "Orb", 
+        verification_level: "orb", 
       });
 
       if (finalPayload.status === "success") {
@@ -60,7 +59,7 @@ export default function Home() {
   }
 
   return (
-    <main className="flex flex-col min-h-[100dvh] bg-black overflow-hidden">
+    <main className="flex flex-col min-h-[100dvh] bg-black overflow-hidden font-sans">
       <div className="flex-1 overflow-y-auto pb-20">
         {activeTab === "home" && <HomePage walletAddress={walletAddress!} />}
         {activeTab === "generate" && <GeneratePage walletAddress={walletAddress!} />}
@@ -92,4 +91,4 @@ function HomePage({ walletAddress }: { walletAddress: string }) {
   );
 }
 "@
-$code | Out-File -FilePath "src/app/page.tsx" -Encoding utf8
+$code | Out-File -FilePath $path -Encoding utf8

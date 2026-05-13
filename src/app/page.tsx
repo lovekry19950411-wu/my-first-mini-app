@@ -1,5 +1,5 @@
 "use client";
-import { MiniKit, VerificationLevel } from "@worldcoin/minikit-js";
+import { MiniKit } from "@worldcoin/minikit-js";
 import { useMiniKit } from "@worldcoin/minikit-js/minikit-provider";
 import { TabBar } from "@/components/TabBar";
 import { GeneratePage } from "@/components/GeneratePage";
@@ -15,27 +15,24 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("home");
   const attempted = useRef(false);
 
-  // --- 關鍵修改：從錢包授權改為「真人驗證」 ---
   const doVerify = useCallback(async () => {
     if (authPending || attempted.current) return;
     attempted.current = true;
     setAuthPending(true);
 
     try {
-      // 呼叫官方 Verify 指令，這才會跳出你以前那種「認證成功」的打勾畫面
       const { finalPayload } = await MiniKit.commands.verify({
-        action: "login-verify", // 這裡對應你在 Developer Portal 設定的 Action ID
+        action: "login-verify",
         signal: "user_" + Math.random().toString(36).substring(7),
-        verification_level: VerificationLevel.Orb, // 強制要求虹膜認證！
+        verification_level: "Orb",
       });
 
       if (finalPayload.status === "success") {
-        // 只有驗證成功，才會設定地址並進入主頁面
         setWalletAddress(MiniKit.user?.walletAddress ?? "0x...");
         setIsVerified(true);
       }
     } catch (e) {
-      console.error("真人驗證失敗", e);
+      console.error(e);
     } finally {
       setAuthPending(false);
     }
@@ -45,7 +42,6 @@ export default function Home() {
     if (isInstalled) doVerify();
   }, [isInstalled, doVerify]);
 
-  // 如果沒驗證成功，停留在登入畫面
   if (!isVerified) {
     return (
       <main className="flex flex-col items-center justify-center min-h-[100dvh] bg-black p-6 gap-8">
@@ -82,7 +78,6 @@ export default function Home() {
   );
 }
 
-// HomePage 部分保持不變，但確保使用驗證過的地址
 function HomePage({ walletAddress }: { walletAddress: string }) {
   const short = walletAddress.slice(0, 6) + "..." + walletAddress.slice(-4);
   return (

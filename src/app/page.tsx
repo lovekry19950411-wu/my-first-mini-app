@@ -90,5 +90,3 @@ function HomePage({ walletAddress }: { walletAddress: string }) {
     </div>
   );
 }
-"@
-$code | Out-File -FilePath $path -Encoding utf8

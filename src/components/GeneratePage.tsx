@@ -6,10 +6,10 @@ const PLATFORMS = ["Instagram", "TikTok", "Twitter/X", "LinkedIn", "YouTube"];
 const CONTENT_TYPES = ["爆款文案", "產品介紹", "個人品牌", "教育內容", "病毒標題"];
 
 interface GeneratePageProps {
-  session: any;
+  walletAddress: string;
 }
 
-export function GeneratePage({ session }: GeneratePageProps) {
+export function GeneratePage({ walletAddress }: GeneratePageProps) {
   const [platform, setPlatform] = useState("Instagram");
   const [contentType, setContentType] = useState("爆款文案");
   const [topic, setTopic] = useState("");
@@ -26,7 +26,7 @@ export function GeneratePage({ session }: GeneratePageProps) {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, contentType, topic }),
+        body: JSON.stringify({ platform, contentType, topic, walletAddress }),
       });
       const data = await res.json();
       setResult(data.content ?? "生成失敗，請重試");
